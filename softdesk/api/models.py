@@ -6,9 +6,6 @@ class User(AbstractUser):
     first_name = models.CharField(max_length=128, blank=True)
     last_name = models.CharField(max_length=128, blank=True)
     email = models.EmailField(max_length=128)
-    
-    def __str__(self):
-        return self.email
 
 
 class Project(models.Model):
@@ -18,19 +15,20 @@ class Project(models.Model):
     label = models.CharField(max_length=128)
     # Set null because the creator of the project can leave it without canceling the project
     author = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name='Author')
-    contributor = models.ManyToManyField(User, through='Contributor')
+    contributor = models.ManyToManyField(User, through='Contributor', related_name='contributors')
     created_time = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.title
     
     def save(self, *args, **kwargs):
-        super().save(*args, *kwargs)
         contrib = Contributor()
+        print(contrib)
         contrib.project = self
         contrib.user = self.author
         contrib.role = 'AUTH'
         contrib.save()
+        super().save(*args, *kwargs)
 
 
 class Contributor(models.Model):
@@ -39,7 +37,7 @@ class Contributor(models.Model):
         AUTHOR = 'AUTH'
 
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='Project')
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user')
     role = models.CharField(choices=Role.choices, max_length=10)
 
     class Meta:
