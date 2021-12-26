@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.conf import settings
 
 
 class User(AbstractUser):
@@ -14,21 +15,12 @@ class Project(models.Model):
     description = models.TextField(max_length=8192, blank=True)
     label = models.CharField(max_length=128)
     # Set null because the creator of the project can leave it without canceling the project
-    author = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name='Author')
-    contributor = models.ManyToManyField(User, through='Contributor', related_name='contributors')
+    author = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name='author')
+    contributors = models.ManyToManyField(settings.AUTH_USER_MODEL, through='Contributor', symmetrical=True, related_name='contribution')
     created_time = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.title
-    
-    def save(self, *args, **kwargs):
-        contrib = Contributor()
-        print(contrib)
-        contrib.project = self
-        contrib.user = self.author
-        contrib.role = 'AUTH'
-        contrib.save()
-        super().save(*args, *kwargs)
 
 
 class Contributor(models.Model):
@@ -36,9 +28,9 @@ class Contributor(models.Model):
         CONTRIBOTOR = 'CON'
         AUTHOR = 'AUTH'
 
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='Project')
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user')
-    role = models.CharField(choices=Role.choices, max_length=10)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    role = models.CharField(choices=Role.choices, default='AUTH', max_length=10)
 
     class Meta:
         unique_together = ('project', 'user')

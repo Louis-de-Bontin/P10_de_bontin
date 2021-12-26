@@ -1,63 +1,97 @@
+from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer, SerializerMethodField
 
 from api.models import Contributor, Project, Issue, Comment, User
 
 
 class ProjectListSerializer(ModelSerializer):
-    contributors = SerializerMethodField()
+    author = SerializerMethodField()
+    issues_count = SerializerMethodField()
 
     class Meta:
         model = Project
-        fields = ['title', 'label', 'author', 'contributors']
+        fields = ['id', 'title', 'label', 'author', 'issues_count']
     
-    def get_contributors(self, instance):
-        contributors = Contributor.objects.filter(project=instance)
-        queryset = User.objects.filter(id__in=contributors)
-        serializer = UserListSerializer(queryset, many=True)
-        return serializer.data
+    def get_author(self, instance):
+        # serializer = UserListSerializer(instance.author)
+        try:
+            return instance.author.username
+        except:
+            return None
+    
+    def get_issues_count(self, instance):
+        issues = Issue.objects.filter(project = instance)
+        return len(issues)
 
 
 class ProjectDetailSerializer(ModelSerializer):
     issues = SerializerMethodField()
-    contributors = SerializerMethodField()
+    contributions = SerializerMethodField()
+    author = SerializerMethodField()
 
     class Meta:
         model = Project
-        fields = ['title', 'description', 'label', 'author', 'contributors', 'created_time', 'issues']
+        fields = ['title', 'description', 'label', 'author', 'contributions', 'created_time', 'issues']
 
     def get_issues(self, instance):
         queryset = instance.issues.filter(project=instance.id)
         serializer = IssueListSerializer(queryset, many=True)
         return serializer.data
     
-    def get_contributors(self, instance):
+    def get_contributions(self, instance):
         queryset = Contributor.objects.filter(project=instance)
-        # queryset = User.objects.filter(id__in=contributors)
         serializer = ContributorListSerializer(queryset, many=True)
         return serializer.data
+    
+    def get_author(self, instance):
+        # serializer = UserListSerializer(instance.author)
+        return instance.author.username
+
+
+class ProjectFewInfo(ModelSerializer):
+
+    class Meta:
+        model = Project
+        fields = ['title', 'id']
 
 
 class IssueListSerializer(ModelSerializer):
 
     class Meta:
         model = Issue
-        fields = ['name', 'tag', 'priority', 'status', 'created_time']
+        fields = ['name', 'priority', 'status', 'created_time', 'id']
 
 
 class IssueDetailSerializer(ModelSerializer):
     comments = SerializerMethodField()
+    assignee = SerializerMethodField()
+    initiator = SerializerMethodField()
+    project_name = SerializerMethodField()
 
     class Meta:
+
         model = Issue
-        fields = ['name', 'description', 'tag', 'priority', 'project', 'status',
+        fields = ['name', 'description', 'tag', 'priority', 'project_name', 'status',
             'initiator', 'assignee', 'created_time', 'comments']
     
     def get_comments(self, instance):
         queryset = instance.comments.all()
         serializer = CommentListSerializer(queryset, many=True)
         return serializer.data
-
     
+    def get_assignee(self, instance):
+        # serializer = UserListSerializer(instance.assignee)
+        return instance.assignee.username
+
+    def get_initiator(self, instance):
+        # serializer = UserListSerializer(instance.initiator)
+        try:
+            return instance.initiator.username
+        except:
+            return None
+    
+    def get_project_name(self, instance):
+        return instance.project.title
 
 
 class CommentListSerializer(ModelSerializer):
@@ -69,33 +103,49 @@ class CommentListSerializer(ModelSerializer):
 
 
 class UserDetailSerializer(ModelSerializer):
+    contribution = SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'username', 'email']
+        fields = ['first_name', 'last_name', 'username', 'email', 'id', 'contribution']
+    
+    def get_contribution(self, instance):
+        try:
+            project = Project.objects.get(id=self.context['view'].kwargs['project_pk'])
+            queryset = Contributor.objects.get(user=instance, project=project)
+            serializer = ContributorDetailSerializer(queryset)
+        except:
+            queryset = Contributor.objects.filter(user=instance)
+            serializer = ContributorDetailSerializer(queryset, many=True)
+        return serializer.data
 
 
 class UserListSerializer(ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['username']
+        fields = ['username', 'id']
 
 
 class ContributorDetailSerializer(ModelSerializer):
+    project = SerializerMethodField()
 
     class Meta:
         model = Contributor
-        fields = ['project', 'user']
+        fields = ['project', 'role']
+    
+    def get_project(self, instance):
+        serializer = ProjectFewInfo(instance.project)
+        return serializer.data
 
 
 class ContributorListSerializer(ModelSerializer):
-    user = SerializerMethodField()
+    users = SerializerMethodField()
 
     class Meta:
         model = Contributor
-        fields = ['user']
+        fields = ['users', 'role']
     
-    def get_user(self, instance):
-        serializer = UserListSerializer(instance.user)
-        return serializer.data
+    def get_users(self, instance):
+        # serializer = UserListSerializer(instance.user)
+        return instance.user.username
