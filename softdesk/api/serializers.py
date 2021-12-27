@@ -5,19 +5,11 @@ from api.models import Contributor, Project, Issue, Comment, User
 
 
 class ProjectListSerializer(ModelSerializer):
-    author = SerializerMethodField()
     issues_count = SerializerMethodField()
 
     class Meta:
         model = Project
-        fields = ['id', 'title', 'label', 'author', 'issues_count']
-    
-    def get_author(self, instance):
-        # serializer = UserListSerializer(instance.author)
-        try:
-            return instance.author.username
-        except:
-            return None
+        fields = ['id', 'title', 'label', 'get_author', 'issues_count']
     
     def get_issues_count(self, instance):
         issues = Issue.objects.filter(project = instance)
@@ -27,11 +19,10 @@ class ProjectListSerializer(ModelSerializer):
 class ProjectDetailSerializer(ModelSerializer):
     issues = SerializerMethodField()
     contributions = SerializerMethodField()
-    author = SerializerMethodField()
 
     class Meta:
         model = Project
-        fields = ['title', 'description', 'label', 'author', 'contributions', 'created_time', 'issues']
+        fields = ['title', 'description', 'label', 'get_author', 'contributions', 'created_time', 'issues']
 
     def get_issues(self, instance):
         queryset = instance.issues.filter(project=instance.id)
@@ -42,10 +33,6 @@ class ProjectDetailSerializer(ModelSerializer):
         queryset = Contributor.objects.filter(project=instance)
         serializer = ContributorListSerializer(queryset, many=True)
         return serializer.data
-    
-    def get_author(self, instance):
-        # serializer = UserListSerializer(instance.author)
-        return instance.author.username
 
 
 class ProjectFewInfo(ModelSerializer):
@@ -56,10 +43,18 @@ class ProjectFewInfo(ModelSerializer):
 
 
 class IssueListSerializer(ModelSerializer):
+    assignee = SerializerMethodField()
 
     class Meta:
         model = Issue
-        fields = ['name', 'priority', 'status', 'created_time', 'id']
+        fields = ['name', 'assignee', 'priority', 'status', 'id']
+    
+    def get_assignee(self, instance):
+        # serializer = UserListSerializer(instance.assignee)
+        try:
+            return instance.assignee.username
+        except:
+            return None
 
 
 class IssueDetailSerializer(ModelSerializer):
@@ -81,7 +76,10 @@ class IssueDetailSerializer(ModelSerializer):
     
     def get_assignee(self, instance):
         # serializer = UserListSerializer(instance.assignee)
-        return instance.assignee.username
+        try:
+            return instance.assignee.username
+        except:
+            return None
 
     def get_initiator(self, instance):
         # serializer = UserListSerializer(instance.initiator)
@@ -98,7 +96,29 @@ class CommentListSerializer(ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = ['label', 'content', 'author', 'issue', 'created_time']
+        fields = ['label', 'content', 'id']
+
+
+class CommentDetailSerializer(ModelSerializer):
+    author = SerializerMethodField()
+    issue = SerializerMethodField()
+    project = SerializerMethodField()
+
+    class Meta:
+        model = Comment
+        fields = ['label', 'content', 'id', 'author', 'issue', 'project', 'created_time']
+    
+    def get_author(self, instance):
+        try:
+            return instance.author.username
+        except:
+            return None
+
+    def get_issue(self, instance):
+        return instance.issue.name
+    
+    def get_project(self, instance):
+        return instance.issue.project.title
 
 
 
@@ -140,12 +160,16 @@ class ContributorDetailSerializer(ModelSerializer):
 
 
 class ContributorListSerializer(ModelSerializer):
-    users = SerializerMethodField()
+    user = SerializerMethodField()
+    user_id = SerializerMethodField()
 
     class Meta:
         model = Contributor
-        fields = ['users', 'role']
+        fields = ['user', 'role', 'user_id']
     
-    def get_users(self, instance):
+    def get_user(self, instance):
         # serializer = UserListSerializer(instance.user)
         return instance.user.username
+    
+    def get_user_id(self, instance):
+        return instance.user.id

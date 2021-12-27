@@ -16,11 +16,17 @@ class Project(models.Model):
     label = models.CharField(max_length=128)
     # Set null because the creator of the project can leave it without canceling the project
     author = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name='author')
-    contributors = models.ManyToManyField(settings.AUTH_USER_MODEL, through='Contributor', symmetrical=True, related_name='contribution')
+    contributors = models.ManyToManyField(settings.AUTH_USER_MODEL, through='Contributor', symmetrical=True, related_name='contributions')
     created_time = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.title
+    
+    def get_author(self):
+        try:
+            return self.author.username
+        except:
+            return None
 
 
 class Contributor(models.Model):
@@ -28,8 +34,8 @@ class Contributor(models.Model):
         CONTRIBOTOR = 'CON'
         AUTHOR = 'AUTH'
 
-    project = models.ForeignKey(Project, on_delete=models.CASCADE)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='contributions')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='contrib')
     role = models.CharField(choices=Role.choices, default='AUTH', max_length=10)
 
     class Meta:
@@ -53,8 +59,8 @@ class Issue(models.Model):
     priority = models.CharField(choices=Priority.choices, max_length=10)
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='issues')
     status = models.CharField(choices=Status.choices, max_length=10)
-    initiator = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name='Initiator')
-    assignee = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name='Assignee')
+    initiator = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name='Initiator')
+    assignee = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name='Assignee')
     created_time = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -65,7 +71,7 @@ class Comment(models.Model):
 
     label = models.CharField(max_length=128)
     content = models.TextField(max_length=8192, blank=True)
-    author = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
     issue = models.ForeignKey(Issue, on_delete=models.CASCADE, related_name='comments')
     created_time = models.DateTimeField(auto_now_add=True)
 
