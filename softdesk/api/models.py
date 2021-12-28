@@ -7,6 +7,7 @@ class User(AbstractUser):
     first_name = models.CharField(max_length=128, blank=True)
     last_name = models.CharField(max_length=128, blank=True)
     email = models.EmailField(max_length=128)
+    password = models.CharField(max_length=128)
 
 
 class Project(models.Model):

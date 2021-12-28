@@ -131,6 +131,7 @@ class UserDetailSerializer(ModelSerializer):
     
     def get_contribution(self, instance):
         try:
+            print(self.user)
             project = Project.objects.get(id=self.context['view'].kwargs['project_pk'])
             queryset = Contributor.objects.get(user=instance, project=project)
             serializer = ContributorDetailSerializer(queryset)
