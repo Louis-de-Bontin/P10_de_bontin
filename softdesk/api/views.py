@@ -9,7 +9,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from django.contrib.auth.models import AnonymousUser
 
-from api import serializers, exceptions, models
+from api import serializers, exceptions, models, permissions
 """
 Utilisateur :
 C : tout le monde                   --DONE
@@ -81,15 +81,13 @@ class SignupView(CommunFuctionsMixin, ModelViewSet):
     detail_serializer_class = serializers.UserDetailSerializer
 
     authentication_classes = [JWTAuthentication]
+    permission_classes = [permissions.PermissionUser]
 
     def get_queryset(self):
-        if type(self.request.user) == AnonymousUser:
-            raise AuthenticationFailed(detail='Credentials incorrect or not provided.')
         return models.User.objects.all()
     
     def get_serializer_class(self):
-        print(self.action)
-        if self.action == 'retrieve':
+        if self.action == 'retrieve' or self.action == 'create':
             return self.detail_serializer_class
         if self.action == 'list':
             return super().get_serializer_class()
@@ -116,17 +114,16 @@ class ProjectViewset(CommunFuctionsMixin, ModelViewSet):
     serializer_class = serializers.ProjectListSerializer
     detail_serializer_class = serializers.ProjectDetailSerializer
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [
+        IsAuthenticated,
+        permissions.IsProjectContributor
+    ]
     authentication_classes = [JWTAuthentication]
 
     def get_queryset(self):
-        print(self.request.method)
-        if self.request.method == 'GET':
-            return models.Project.objects.filter(
-                contributors=self.request.user)
-        else:
-            return models.Project.objects.filter(
-                author=self.request.user)
+        self.project = models.Project.objects.filter(
+            contributors=self.request.user)
+        return self.project
     
     def perform_create(self, serializer):
         author = self.request.user
@@ -159,13 +156,13 @@ class ContributorViewSet(CommunFuctionsMixin, ModelViewSet):
     serializer_class = serializers.UserListSerializer
     detail_serializer_class = serializers.UserDetailSerializer
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, permissions.IsProjectContributor]
     authentication_classes = [JWTAuthentication]
 
     def get_queryset(self):
-        project = get_object_or_404(models.Project,
+        self.project = get_object_or_404(models.Project,
             id=self.kwargs['project_pk'], contributors=self.request.user)
-        return models.User.objects.filter(contrib__project=project)
+        return models.User.objects.filter(contrib__project=self.project)
     
     def create(self, request, *args, **kwargs):
         authorized = False
@@ -265,7 +262,7 @@ class CommentViewset(CommunFuctionsMixin, ModelViewSet):
     serializer_class = serializers.CommentListSerializer
     detail_serializer_class = serializers.CommentDetailSerializer
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, permissions.WriteComments]
     authentication_classes = [JWTAuthentication]
 
     def get_queryset(self):

@@ -130,8 +130,10 @@ class UserDetailSerializer(ModelSerializer):
         fields = ['first_name', 'last_name', 'username', 'email', 'id', 'contribution']
     
     def get_contribution(self, instance):
+        if type(instance) != User:
+            return []
+
         try:
-            print(self.user)
             project = Project.objects.get(id=self.context['view'].kwargs['project_pk'])
             queryset = Contributor.objects.get(user=instance, project=project)
             serializer = ContributorDetailSerializer(queryset)
@@ -139,6 +141,7 @@ class UserDetailSerializer(ModelSerializer):
             queryset = Contributor.objects.filter(user=instance)
             serializer = ContributorDetailSerializer(queryset, many=True)
         return serializer.data
+        
 
 
 class UserListSerializer(ModelSerializer):

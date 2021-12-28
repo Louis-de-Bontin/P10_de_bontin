@@ -17,7 +17,7 @@ class Project(models.Model):
     label = models.CharField(max_length=128)
     # Set null because the creator of the project can leave it without canceling the project
     author = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name='author')
-    contributors = models.ManyToManyField(settings.AUTH_USER_MODEL, through='Contributor', symmetrical=True, related_name='contributions')
+    contributors = models.ManyToManyField(settings.AUTH_USER_MODEL, through='Contributor', symmetrical=True)
     created_time = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
