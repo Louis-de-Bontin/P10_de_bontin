@@ -7,45 +7,8 @@ from rest_framework.exceptions import AuthenticationFailed, MethodNotAllowed, Pe
 
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from django.contrib.auth.models import AnonymousUser
-
 from api import serializers, exceptions, models, permissions
-"""
-Utilisateur :
-C : tout le monde                   --DONE
-R-list : tout le monde              --DONE
-R-detail : authentifiés             --DONE
-U : Super-user ou user concerné     --A faire si j'ai la foi
-D : Super-user ou user concerné     --A faire si j'ai la foi
 
-Projets :
-C : authentifiés                    --DONE
-R-liste : authentifiés,contributeurs--DONE
-R-detail : authentifié, contributeur--DONE
-U : authentifié, autheur            --DONE
-D : authentifié, autheur            --DONE
-
-Utilisateur attachés à un projet :
-C : authentifié, contributeur       --DONE
-R-list : authentifié, contributeur  --DONE
-R-detail : authentifié, contributeur--DONE
-U : interdit                        --DONE
-D : authentifié, contributor        --DONE
-
-Issue:
-C : authentifié, contributeur
-R-list : authentifié, contributeur
-R-detail : authentifié, contributeur
-U : authentifié, assignee ou initiateur
-D : authentifié, initiateur
-
-Comments:
-C : authentifié, assignee ou initiateur
-R-list : authentifié, contributeur
-R-detail : authentifié, contributeur
-U : authentifié, autheur
-D : authentifié, autheur
-"""
 
 class CommunFuctionsMixin:
     def get_serializer_class(self):
@@ -123,23 +86,25 @@ class ProjectViewset(CommunFuctionsMixin, ModelViewSet):
     def get_queryset(self):
         self.project = models.Project.objects.filter(
             contributors=self.request.user)
+
         return self.project
     
     def perform_create(self, serializer):
         author = self.request.user
         project = serializer.save(author=author)
+
         if 'description' in self.request.POST:
             project.description = self.request.POST['description']
-        models.Contributor(
-            project=project,
-            user=author,
-            role='AUTH'
-        ).save()
+
+        models.Contributor(project=project,
+            user=author, role='AUTH').save()
+
         return super().perform_create(serializer)
     
     def perform_update(self, serializer):
         if 'description' in self.request.POST:
             serializer.save(description=self.request.POST['description'])
+
         return super().perform_update(serializer)
 
 
@@ -156,7 +121,7 @@ class ContributorViewSet(CommunFuctionsMixin, ModelViewSet):
     serializer_class = serializers.UserListSerializer
     detail_serializer_class = serializers.UserDetailSerializer
 
-    permission_classes = [IsAuthenticated, permissions.IsProjectContributor]
+    permission_classes = [IsAuthenticated, permissions.IsAllowedToAddUser]
     authentication_classes = [JWTAuthentication]
 
     def get_queryset(self):
@@ -165,24 +130,17 @@ class ContributorViewSet(CommunFuctionsMixin, ModelViewSet):
         return models.User.objects.filter(contrib__project=self.project)
     
     def create(self, request, *args, **kwargs):
-        authorized = False
         try:
             user = self.get_user('username', self.request.POST['username'])
             project=self.get_project(self.kwargs['project_pk'], request.user)
-            authorized = True
             models.Contributor(user=user, project=project, role='CON').save()
             serializer = self.get_serializer(user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         except Exception as e:
-            print(e)
-            if authorized:
-                raise exceptions.UserAlreadyInProject(
-                    detail={'This user already work on this project': 'Conflict'})
-            else:
-                raise PermissionDenied(detail='You are not authorized to perform this action.')
+            raise exceptions.UserAlreadyInProject(
+                detail={'This user already work on this project': 'Conflict'})
     
     def perform_destroy(self, request, *args, **kwargs):
-        # Autorisation : utilisateur authentifié et AUTHOR du (pas contributor) project
         try:
             contrib = get_object_or_404(models.Contributor,
                 project=self.get_project(self.kwargs['project_pk']),
@@ -213,11 +171,10 @@ class IssueViewset(CommunFuctionsMixin, ModelViewSet):
     serializer_class = serializers.IssueListSerializer
     detail_serializer_class = serializers.IssueDetailSerializer
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, permissions.IsAllowedToInterectWithIssues]
     authentication_classes = [JWTAuthentication]
 
     def get_queryset(self):
-        # Authorisation : conecté et contributor du projet
         return models.Issue.objects.filter(
             project=self.get_project(self.kwargs['project_pk']))
     
@@ -229,10 +186,9 @@ class IssueViewset(CommunFuctionsMixin, ModelViewSet):
             assignee=self.get_assignee(serializer, initiator, project))
 
     def perform_update(self, serializer):
-        # Authorisation : conecté et contributor du projet et initiator ou assignee à l'issue
-        issue = self.get_issue(self.kwargs['pk'])
-        serializer.save(initiator=issue.initiator, project=issue.project,
-            assignee=self.get_assignee(serializer, issue.initiator, issue.project))
+        self.issue = self.get_issue(self.kwargs['pk'])
+        serializer.save(initiator=self.issue.initiator, project=self.issue.project,
+            assignee=self.get_assignee(serializer, self.issue.initiator, self.issue.project))
     
     def get_assignee(self, serializer, initiator, project):
         if 'assignee' in self.request.POST:
@@ -245,8 +201,17 @@ class IssueViewset(CommunFuctionsMixin, ModelViewSet):
                 raise exceptions.UserNotInProject(detail={
                     'This user doesn\'t work on this project or doesn\'t exist': 'Doesn\'t match'})
         
+        elif self.action == 'update':
+            return self.issue.assignee
         else:
-            return initiator        
+            return initiator
+    
+    def perform_destroy(self, instance):
+        """
+        Quand on retire un utilisateur du projet, si il était initiateur ou assignee
+        pour une issue, set blank
+        """
+        return super().perform_destroy(instance)
 
 
 class CommentViewset(CommunFuctionsMixin, ModelViewSet):
@@ -262,7 +227,7 @@ class CommentViewset(CommunFuctionsMixin, ModelViewSet):
     serializer_class = serializers.CommentListSerializer
     detail_serializer_class = serializers.CommentDetailSerializer
 
-    permission_classes = [IsAuthenticated, permissions.WriteComments]
+    permission_classes = [IsAuthenticated, permissions.IsAllowedToInteractWithComments]
     authentication_classes = [JWTAuthentication]
 
     def get_queryset(self):
@@ -271,4 +236,4 @@ class CommentViewset(CommunFuctionsMixin, ModelViewSet):
     def perform_create(self, serializer):
         # Authorisation : conecté et contributor du projet et author ou assignee de l'issue
         issue = self.get_issue(self.kwargs['issue_pk'])
-        serializer.save(issue=issue)
+        serializer.save(issue=issue, author=self.request.user)

@@ -3,7 +3,6 @@ from rest_framework.serializers import ModelSerializer, SerializerMethodField
 
 from api.models import Contributor, Project, Issue, Comment, User
 
-
 class ProjectListSerializer(ModelSerializer):
     issues_count = SerializerMethodField()
 
@@ -145,10 +144,15 @@ class UserDetailSerializer(ModelSerializer):
 
 
 class UserListSerializer(ModelSerializer):
-
+    role = SerializerMethodField()
     class Meta:
         model = User
-        fields = ['username', 'id']
+        fields = ['username', 'role', 'id']
+    
+    def get_role(self, instance):        
+        return Contributor.objects.get(
+            project=self.context['view'].kwargs['project_pk'],
+            user=instance).role
 
 
 class ContributorDetailSerializer(ModelSerializer):

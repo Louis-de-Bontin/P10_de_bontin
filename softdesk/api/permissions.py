@@ -1,5 +1,21 @@
+from django.views.generic import base
 from rest_framework.permissions import BasePermission
+from rest_framework.generics import get_object_or_404
 from api import models
+
+
+class MixinContributor:
+    message = 'You are not contributor of this project.'
+
+    def is_contributor(self, view, request):
+        project = get_object_or_404(models.Project,
+            id=view.kwargs['project_pk'], contributors=request.user)
+        contributions = project.contributions.get_queryset()
+
+        for contrib in contributions:
+            if request.user == contrib.user:
+                return True
+        return False
 
 
 class PermissionUser(BasePermission):
@@ -9,41 +25,63 @@ class PermissionUser(BasePermission):
         if request.method == 'GET' and request.user.is_authenticated:
             return True
         return False
+        
 
-
-# class IsProjectAuthor(BasePermission):
-#     message = 'You must be the author of this project to perform this action.'
-
-#     def has_permission(self, request, view):
-#         print(super().has_permission(request, view))
-#         return super().has_permission(request, view)
-    
-#     def has_object_permission(self, request, view, obj):
-#         print(obj)
-#         return request.user == obj.author
-
-
-class IsProjectContributor(BasePermission):
+class IsProjectContributor(MixinContributor, BasePermission):
+    """
+    True if the user is author of the project for any actions.
+    True if the user is contributor and the method is GET.
+    """
     message = 'You must be author of this project to perform this action.'
 
     def has_object_permission(self, request, view, obj):
-        print(view.project)
-        if request.method == 'GET':
-            contributions = view.project.contributions.get_queryset()
-            for contrib in contributions:
-                if request.user == contrib.user:
-                    return True
-            return False
-        else:
-            return request.user == obj.author
+        if request.user == obj.author:
+            return True
+        return self.is_contributor(view, request) and request.method == 'GET'
 
-class WriteComments(BasePermission):
-    message = 'You are not initiator nor assignee for this issue.'
 
+class IsAllowedToAddUser(MixinContributor, BasePermission):
     def has_permission(self, request, view):
-        # print(request.method)
-        issue = models.Issue.objects.get(id=view.kwargs['issue_pk'])
+        
+        if view.action == 'create':
+            return self.has_object_permission(request, view)
+
+        return self.is_contributor(view, request)
+
+    def has_object_permission(self, request, view, obj=None):
+        self.message = 'You must be author of this project to perform this action.'
+        project = get_object_or_404(models.Project,
+            id=view.kwargs['project_pk'], contributors=request.user)
+        return request.user == project.author
+
+
+class IsAllowedToInterectWithIssues(MixinContributor, BasePermission):
+    def has_permission(self, request, view):
+        return self.is_contributor(view, request)
+    
+    def has_object_permission(self, request, view, obj=None):
+        if request.method == 'GET':
+            return True
+
+        self.message = 'You must be initiator, assignee to this issue or author of the project to perform this action.'
+        project = get_object_or_404(models.Project,
+            id=view.kwargs['project_pk'], contributors=request.user)
+        issue = get_object_or_404(models.Issue, id=view.kwargs['pk'])
+        if request.user == project.author:
+            return True
         if request.user == issue.initiator or request.user == issue.assignee:
             return True
-        else:
-            return False
+
+
+class IsAllowedToInteractWithComments(MixinContributor, BasePermission):
+    def has_permission(self, request, view):
+        self.is_contributor(view, request)
+        return self.is_contributor(view, request)
+    
+    def has_object_permission(self, request, view, obj):
+        self.message = 'You must be the author of the comment to perform this action.'
+        if request.method == 'GET':
+            return True
+        if obj.author == request.user:
+            return True
+        return False 
