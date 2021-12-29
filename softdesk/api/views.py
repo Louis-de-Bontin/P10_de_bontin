@@ -1,9 +1,9 @@
-from rest_framework import authentication, permissions, request, status
+from rest_framework import permissions, status
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
-from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
+from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.exceptions import AuthenticationFailed, MethodNotAllowed, PermissionDenied
+from rest_framework.exceptions import MethodNotAllowed, PermissionDenied
 
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
@@ -54,7 +54,6 @@ class SignupView(CommunFuctionsMixin, ModelViewSet):
             return self.detail_serializer_class
         if self.action == 'list':
             return super().get_serializer_class()
-        raise PermissionDenied(detail='You are not authorized to perform this action.')
     
     def perform_create(self, serializer):
         new_user = models.User()
@@ -138,7 +137,7 @@ class ContributorViewSet(CommunFuctionsMixin, ModelViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         except Exception as e:
             raise exceptions.UserAlreadyInProject(
-                detail={'This user already work on this project': 'Conflict'})
+                detail={'This user already work on this project or username not in request.': 'Conflict'})
     
     def perform_destroy(self, request, *args, **kwargs):
         try:
@@ -152,8 +151,8 @@ class ContributorViewSet(CommunFuctionsMixin, ModelViewSet):
             serializer = self.get_serializer(self.get_queryset(), many=True)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         except:
-            raise exceptions.UserNotInProject(detail={
-                'This user doesn\'t work on this project, or is author, or doesn\'t exist': 'Doesn\'t match'})
+            raise PermissionDenied(detail={
+                'This user doesn\'t work on this project, or is author, or doesn\'t exist': 'Forbiden'})
     
     def update(self, request):
         raise MethodNotAllowed()
@@ -199,7 +198,7 @@ class IssueViewset(CommunFuctionsMixin, ModelViewSet):
 
             except:
                 raise exceptions.UserNotInProject(detail={
-                    'This user doesn\'t work on this project or doesn\'t exist': 'Doesn\'t match'})
+                    'This user doesn\'t work on this project or doesn\'t exist': 'User not found'})
         
         elif self.action == 'update':
             return self.issue.assignee
@@ -234,6 +233,5 @@ class CommentViewset(CommunFuctionsMixin, ModelViewSet):
         return models.Comment.objects.filter(issue=self.get_issue(self.kwargs['issue_pk']))
     
     def perform_create(self, serializer):
-        # Authorisation : conecté et contributor du projet et author ou assignee de l'issue
         issue = self.get_issue(self.kwargs['issue_pk'])
         serializer.save(issue=issue, author=self.request.user)

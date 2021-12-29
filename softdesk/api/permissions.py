@@ -8,8 +8,12 @@ class MixinContributor:
     message = 'You are not contributor of this project.'
 
     def is_contributor(self, view, request):
+        try:
+            id = view.kwargs['project_pk']
+        except:
+            id = view.kwargs['pk']
         project = get_object_or_404(models.Project,
-            id=view.kwargs['project_pk'], contributors=request.user)
+            id=id, contributors=request.user)
         contributions = project.contributions.get_queryset()
 
         for contrib in contributions:
@@ -24,8 +28,18 @@ class PermissionUser(BasePermission):
             return True
         if request.method == 'GET' and request.user.is_authenticated:
             return True
-        return False
-        
+        return super().has_permission(request, view) 
+           
+    def has_object_permission(self, request, view, obj):
+        print(obj)
+        print(request.user)
+        if view.action == 'update' or view.action == 'destroy' or view.action == 'partial_update':
+            print("salut")
+            if request.user == obj:
+                print('coucou')
+                return True
+            return False
+        return True
 
 class IsProjectContributor(MixinContributor, BasePermission):
     """
@@ -63,15 +77,16 @@ class IsAllowedToInterectWithIssues(MixinContributor, BasePermission):
         if request.method == 'GET':
             return True
 
-        self.message = 'You must be initiator, assignee to this issue or author of the project to perform this action.'
+        self.message = 'You can not perform this action.'
         project = get_object_or_404(models.Project,
             id=view.kwargs['project_pk'], contributors=request.user)
         issue = get_object_or_404(models.Issue, id=view.kwargs['pk'])
-        if request.user == project.author:
-            return True
-        if request.user == issue.initiator or request.user == issue.assignee:
-            return True
 
+        if (request.user == issue.initiator or request.user == issue.assignee) and (view.action == 'partial_update' or view.action == 'update'):
+            return True
+        if (request.user == issue.initiator or request.user == project.author) and view.action == 'destroy':
+            return True
+        return False
 
 class IsAllowedToInteractWithComments(MixinContributor, BasePermission):
     def has_permission(self, request, view):
@@ -79,9 +94,17 @@ class IsAllowedToInteractWithComments(MixinContributor, BasePermission):
         return self.is_contributor(view, request)
     
     def has_object_permission(self, request, view, obj):
-        self.message = 'You must be the author of the comment to perform this action.'
+        self.message = 'You can not perform this action.'
+        project = get_object_or_404(models.Project,
+            id=view.kwargs['project_pk'])
+
         if request.method == 'GET':
             return True
-        if obj.author == request.user:
-            return True
+
+        if view.action == 'update' or view.action == 'partial_update':
+            return request.user == obj.author
+        
+        if view.action == 'destroy':
+            return request.user == obj.author or request.user == project.author
+
         return False 

@@ -12,9 +12,15 @@ class User(AbstractUser):
 
 class Project(models.Model):
 
+    class Label(models.TextChoices):
+        BACKEND = 'BE'
+        FRONTEND = 'FE'
+        IOS = 'IOS'
+        ANDROID = 'AN'
+
     title = models.CharField(max_length=128)
     description = models.TextField(max_length=8192, blank=True)
-    label = models.CharField(max_length=128)
+    label = models.CharField(choices=Label.choices, max_length=128)
     # Set null because the creator of the project can leave it without canceling the project
     author = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name='author')
     contributors = models.ManyToManyField(settings.AUTH_USER_MODEL, through='Contributor', symmetrical=True)
@@ -45,10 +51,15 @@ class Contributor(models.Model):
 
 class Issue(models.Model):
     class Priority(models.TextChoices):
-        URGENT = 'UR'
-        IMPORTANT = 'IMP'
-        NOT_IMPORTANT = 'NIMP'
+        HIGH = 'H'
+        NORMAL = 'N'
+        LOW = 'L'
     
+    class Balise(models.TextChoices):
+        BUG = 'BUG'
+        IMPROVEMENT = 'IMP'
+        TASK = 'TASK'
+
     class Status(models.TextChoices):
         DONE = 'DONE'
         PROCESSING = 'PRO'
@@ -56,10 +67,10 @@ class Issue(models.Model):
 
     name = models.CharField(max_length=128)
     description = models.TextField(max_length=8192, blank=True)
-    tag = models.CharField(max_length=4096, blank=True)
-    priority = models.CharField(choices=Priority.choices, max_length=10)
+    balise = models.CharField(choices=Balise.choices, default='TASK', max_length=4)
+    priority = models.CharField(choices=Priority.choices, default='L', max_length=1)
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='issues')
-    status = models.CharField(choices=Status.choices, max_length=10)
+    status = models.CharField(choices=Status.choices, default='TODO', max_length=4)
     initiator = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name='Initiator')
     assignee = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name='Assignee')
     created_time = models.DateTimeField(auto_now_add=True)

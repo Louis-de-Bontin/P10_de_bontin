@@ -49,7 +49,6 @@ class IssueListSerializer(ModelSerializer):
         fields = ['name', 'assignee', 'priority', 'status', 'id']
     
     def get_assignee(self, instance):
-        # serializer = UserListSerializer(instance.assignee)
         try:
             return instance.assignee.username
         except:
@@ -65,7 +64,7 @@ class IssueDetailSerializer(ModelSerializer):
     class Meta:
 
         model = Issue
-        fields = ['name', 'description', 'tag', 'priority', 'project_name', 'status',
+        fields = ['name', 'description', 'balise', 'priority', 'project_name', 'status',
             'initiator', 'assignee', 'created_time', 'comments']
     
     def get_comments(self, instance):
@@ -74,14 +73,12 @@ class IssueDetailSerializer(ModelSerializer):
         return serializer.data
     
     def get_assignee(self, instance):
-        # serializer = UserListSerializer(instance.assignee)
         try:
             return instance.assignee.username
         except:
             return None
 
     def get_initiator(self, instance):
-        # serializer = UserListSerializer(instance.initiator)
         try:
             return instance.initiator.username
         except:
@@ -92,10 +89,17 @@ class IssueDetailSerializer(ModelSerializer):
 
 
 class CommentListSerializer(ModelSerializer):
+    author = SerializerMethodField()
 
     class Meta:
         model = Comment
-        fields = ['label', 'content', 'id']
+        fields = ['label', 'author', 'id']
+    
+    def get_author(self, instance):
+        try:
+            return instance.author.username
+        except:
+            return None
 
 
 class CommentDetailSerializer(ModelSerializer):
@@ -144,15 +148,9 @@ class UserDetailSerializer(ModelSerializer):
 
 
 class UserListSerializer(ModelSerializer):
-    role = SerializerMethodField()
     class Meta:
         model = User
-        fields = ['username', 'role', 'id']
-    
-    def get_role(self, instance):        
-        return Contributor.objects.get(
-            project=self.context['view'].kwargs['project_pk'],
-            user=instance).role
+        fields = ['username', 'id']
 
 
 class ContributorDetailSerializer(ModelSerializer):
