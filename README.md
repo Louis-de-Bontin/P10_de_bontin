@@ -10,5 +10,4 @@ It aims to be a project manager. The users can create projects, associate other 
 The main purpose is to manage issues that will occure during the workflow of any projects. Any contributor of a project can register an issue.
 You can read the full documentation to have more details about every available endpoints.
 
-###### Note
-This project has been realized as part of my studies.
+###### Note : This project has been realized as part of my studies.
