@@ -5,6 +5,11 @@ from api import models
 
 
 class MixinContributor:
+    """
+    The permissions for projects, issue and comment management need to
+    first check if the user is contributor od the project. This mixin
+    offers this method.
+    """
     message = 'You are not contributor of this project.'
 
     def is_contributor(self, view, request):
@@ -23,6 +28,13 @@ class MixinContributor:
 
 
 class PermissionUser(BasePermission):
+    """
+    This permission is associated with the SignupView.
+    It allows everybody to create a profil.
+    It allows only the logged in users to acces informations.
+    It allows a logged in user to modify or delete his own
+    profile.
+    """
     def has_permission(self, request, view):
         if view.action == 'create':
             return True
@@ -31,20 +43,17 @@ class PermissionUser(BasePermission):
         return super().has_permission(request, view) 
            
     def has_object_permission(self, request, view, obj):
-        print(obj)
-        print(request.user)
         if view.action == 'update' or view.action == 'destroy' or view.action == 'partial_update':
-            print("salut")
             if request.user == obj:
-                print('coucou')
                 return True
             return False
         return True
 
 class IsProjectContributor(MixinContributor, BasePermission):
     """
-    True if the user is author of the project for any actions.
-    True if the user is contributor and the method is GET.
+    It allows a user if he is author of the project to
+    perform any actions.
+    It allows the contributors to use the GET method.
     """
     message = 'You must be author of this project to perform this action.'
 
@@ -55,6 +64,11 @@ class IsProjectContributor(MixinContributor, BasePermission):
 
 
 class IsAllowedToAddUser(MixinContributor, BasePermission):
+    """
+    It allows the author of a project to add a user to a project.
+    It allows the author of a project to remove a user from a project.
+    It allows the contributors of a project to use the GET method.
+    """
     def has_permission(self, request, view):
         
         if view.action == 'create':
@@ -70,6 +84,12 @@ class IsAllowedToAddUser(MixinContributor, BasePermission):
 
 
 class IsAllowedToInterectWithIssues(MixinContributor, BasePermission):
+    """
+    It allows the contributors of a project to use the GET method.
+    It allows the initiator or the assignee of the issue to update it.
+    It allows the initiator of the issue or the author of the
+    project to delete the issue.
+    """
     def has_permission(self, request, view):
         return self.is_contributor(view, request)
     
@@ -89,6 +109,13 @@ class IsAllowedToInterectWithIssues(MixinContributor, BasePermission):
         return False
 
 class IsAllowedToInteractWithComments(MixinContributor, BasePermission):
+    """
+    It allows the contributors of the project to access all the comments
+    of all the issue of the project.
+    It allows the author of the comment to update it.
+    It allows the author of the comment or the author of the project to
+    delete the comment.
+    """
     def has_permission(self, request, view):
         self.is_contributor(view, request)
         return self.is_contributor(view, request)

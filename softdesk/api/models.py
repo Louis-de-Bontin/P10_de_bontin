@@ -4,6 +4,10 @@ from django.conf import settings
 
 
 class User(AbstractUser):
+    """
+    Inirites of the default django user class.
+    """
+
     first_name = models.CharField(max_length=128, blank=True)
     last_name = models.CharField(max_length=128, blank=True)
     email = models.EmailField(max_length=128)
@@ -11,6 +15,9 @@ class User(AbstractUser):
 
 
 class Project(models.Model):
+    """
+    This class defines the fields present in the database for the projects.
+    """
 
     class Label(models.TextChoices):
         BACKEND = 'BE'
@@ -22,14 +29,20 @@ class Project(models.Model):
     description = models.TextField(max_length=8192, blank=True)
     label = models.CharField(choices=Label.choices, max_length=128)
     # Set null because the creator of the project can leave it without canceling the project
-    author = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name='author')
-    contributors = models.ManyToManyField(settings.AUTH_USER_MODEL, through='Contributor', symmetrical=True)
+    author = models.ForeignKey(User, null=True,
+        on_delete=models.SET_NULL, related_name='author')
+    contributors = models.ManyToManyField(settings.AUTH_USER_MODEL,
+        through='Contributor', symmetrical=True)
     created_time = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.title
     
     def get_author(self):
+        """
+        This methods is here because I want to display and choose a user
+        with his username, not his ID.
+        """
         try:
             return self.author.username
         except:
@@ -37,12 +50,19 @@ class Project(models.Model):
 
 
 class Contributor(models.Model):
+    """
+    This class is the connecting class for the ManyToMany relation between
+    projects and users.
+    """
+
     class Role(models.TextChoices):
         CONTRIBOTOR = 'CON'
         AUTHOR = 'AUTH'
 
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='contributions')
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='contrib')
+    project = models.ForeignKey(Project, on_delete=models.CASCADE,
+        related_name='contributions')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE, related_name='contrib')
     role = models.CharField(choices=Role.choices, default='AUTH', max_length=10)
 
     class Meta:
@@ -50,6 +70,10 @@ class Contributor(models.Model):
 
 
 class Issue(models.Model):
+    """
+    This class defines the fields present in the database for the issues.
+    """
+
     class Priority(models.TextChoices):
         HIGH = 'H'
         NORMAL = 'N'
@@ -67,12 +91,18 @@ class Issue(models.Model):
 
     name = models.CharField(max_length=128)
     description = models.TextField(max_length=8192, blank=True)
-    balise = models.CharField(choices=Balise.choices, default='TASK', max_length=4)
-    priority = models.CharField(choices=Priority.choices, default='L', max_length=1)
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='issues')
-    status = models.CharField(choices=Status.choices, default='TODO', max_length=4)
-    initiator = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name='Initiator')
-    assignee = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name='Assignee')
+    balise = models.CharField(choices=Balise.choices,
+        default='TASK', max_length=4)
+    priority = models.CharField(choices=Priority.choices,
+        default='L', max_length=1)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE,
+        related_name='issues')
+    status = models.CharField(choices=Status.choices,
+        default='TODO', max_length=4)
+    initiator = models.ForeignKey(settings.AUTH_USER_MODEL,
+        null=True, on_delete=models.SET_NULL, related_name='Initiator')
+    assignee = models.ForeignKey(settings.AUTH_USER_MODEL, null=True,
+        on_delete=models.SET_NULL, related_name='Assignee')
     created_time = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -80,11 +110,16 @@ class Issue(models.Model):
 
 
 class Comment(models.Model):
+    """
+    This class defines the fields present in the database for the comments.
+    """
 
     label = models.CharField(max_length=128)
     content = models.TextField(max_length=8192, blank=True)
-    author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
-    issue = models.ForeignKey(Issue, on_delete=models.CASCADE, related_name='comments')
+    author = models.ForeignKey(settings.AUTH_USER_MODEL,
+        null=True, on_delete=models.SET_NULL)
+    issue = models.ForeignKey(Issue, on_delete=models.CASCADE,
+        elated_name='comments')
     created_time = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

@@ -11,6 +11,10 @@ from api import serializers, exceptions, models, permissions
 
 
 class CommunFuctionsMixin:
+    """
+    Some functions are commun for some of the view. You can find them in
+    this mixin.
+    """
     def get_serializer_class(self):
         if self.action == 'retrieve':
             return self.detail_serializer_class

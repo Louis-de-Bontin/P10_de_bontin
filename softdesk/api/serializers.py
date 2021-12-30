@@ -21,7 +21,8 @@ class ProjectDetailSerializer(ModelSerializer):
 
     class Meta:
         model = Project
-        fields = ['title', 'description', 'label', 'get_author', 'contributions', 'created_time', 'issues']
+        fields = ['title', 'description', 'label',
+            'get_author','contributions', 'created_time', 'issues']
 
     def get_issues(self, instance):
         queryset = instance.issues.filter(project=instance.id)
@@ -49,6 +50,9 @@ class IssueListSerializer(ModelSerializer):
         fields = ['name', 'assignee', 'priority', 'status', 'id']
     
     def get_assignee(self, instance):
+        """
+        Return the username instead of the id.
+        """
         try:
             return instance.assignee.username
         except:
@@ -64,8 +68,12 @@ class IssueDetailSerializer(ModelSerializer):
     class Meta:
 
         model = Issue
-        fields = ['name', 'description', 'balise', 'priority', 'project_name', 'status',
-            'initiator', 'assignee', 'created_time', 'comments']
+        fields = [
+            'name', 'description', 'balise',
+            'priority', 'project_name', 'status',
+            'initiator', 'assignee', 'created_time',
+            'comments'
+        ]
     
     def get_comments(self, instance):
         queryset = instance.comments.all()
@@ -73,18 +81,27 @@ class IssueDetailSerializer(ModelSerializer):
         return serializer.data
     
     def get_assignee(self, instance):
+        """
+        Return the username instead of the id.
+        """
         try:
             return instance.assignee.username
         except:
             return None
 
     def get_initiator(self, instance):
+        """
+        Return the username instead of the id.
+        """
         try:
             return instance.initiator.username
         except:
             return None
     
     def get_project_name(self, instance):
+        """
+        Return the title instead of the id.
+        """
         return instance.project.title
 
 
@@ -96,6 +113,9 @@ class CommentListSerializer(ModelSerializer):
         fields = ['label', 'author', 'id']
     
     def get_author(self, instance):
+        """
+        Return the username instead of the id.
+        """
         try:
             return instance.author.username
         except:
@@ -109,18 +129,28 @@ class CommentDetailSerializer(ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = ['label', 'content', 'id', 'author', 'issue', 'project', 'created_time']
+        fields = ['label', 'content', 'id',
+            'author', 'issue', 'project', 'created_time']
     
     def get_author(self, instance):
+        """
+        Return the username instead of the id.
+        """
         try:
             return instance.author.username
         except:
             return None
 
     def get_issue(self, instance):
+        """
+        Return the name instead of the id.
+        """
         return instance.issue.name
     
     def get_project(self, instance):
+        """
+        Return the title instead of the id.
+        """
         return instance.issue.project.title
 
 
@@ -130,15 +160,21 @@ class UserDetailSerializer(ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'username', 'email', 'id', 'contribution']
+        fields = ['first_name', 'last_name',
+            'username', 'email', 'id', 'contribution']
     
     def get_contribution(self, instance):
+        """
+        Returns the details of a contribution.
+        """
         if type(instance) != User:
             return []
 
         try:
-            project = Project.objects.get(id=self.context['view'].kwargs['project_pk'])
-            queryset = Contributor.objects.get(user=instance, project=project)
+            project = Project.objects.get(
+                    id=self.context['view'].kwargs['project_pk'])
+            queryset = Contributor.objects.get(
+                    user=instance, project=project)
             serializer = ContributorDetailSerializer(queryset)
         except:
             queryset = Contributor.objects.filter(user=instance)
@@ -174,7 +210,9 @@ class ContributorListSerializer(ModelSerializer):
         fields = ['user', 'role', 'user_id']
     
     def get_user(self, instance):
-        # serializer = UserListSerializer(instance.user)
+        """
+        Return the username instead of the id.
+        """
         return instance.user.username
     
     def get_user_id(self, instance):
