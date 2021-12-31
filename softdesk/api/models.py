@@ -119,7 +119,7 @@ class Comment(models.Model):
     author = models.ForeignKey(settings.AUTH_USER_MODEL,
         null=True, on_delete=models.SET_NULL)
     issue = models.ForeignKey(Issue, on_delete=models.CASCADE,
-        elated_name='comments')
+        related_name='comments')
     created_time = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
