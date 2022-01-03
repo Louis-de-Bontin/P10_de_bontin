@@ -204,7 +204,7 @@ class IssueViewset(CommunFuctionsMixin, ModelViewSet):
                 raise exceptions.UserNotInProject(detail={
                     'This user doesn\'t work on this project or doesn\'t exist': 'User not found'})
         
-        elif self.action == 'update':
+        elif self.action == 'update' or self.action == 'partial_update':
             return self.issue.assignee
         else:
             return initiator
