@@ -32,22 +32,14 @@ class PermissionUser(BasePermission):
     This permission is associated with the SignupView.
     It allows everybody to create a profil.
     It allows only the logged in users to acces informations.
-    It allows a logged in user to modify or delete his own
-    profile.
     """
     def has_permission(self, request, view):
         if view.action == 'create':
             return True
         if request.method == 'GET' and request.user.is_authenticated:
             return True
-        return super().has_permission(request, view) 
-           
-    def has_object_permission(self, request, view, obj):
-        if view.action == 'update' or view.action == 'destroy' or view.action == 'partial_update':
-            if request.user == obj:
-                return True
-            return False
-        return True
+        return False
+
 
 class IsProjectContributor(MixinContributor, BasePermission):
     """
