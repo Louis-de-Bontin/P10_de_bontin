@@ -14,7 +14,7 @@ You can read the full documentation to have more details about every available e
 #### Folder & repository :
 - Create a new folder, and name it as you want `mkdir newfolder`
 - Enter your new folder `cd newfolder`
-- Clone the repository `git clone 'https://github.com/likhardcore/P10_de_bontin.git`
+- Clone the repository `git clone 'https://github.com/likhardcore/P10_de_bontin.git'`
 - Enter the project general folder `cd P10_de_bontin`
 - Create a new virtual environment `python3 -m venv env`
 - Enter the virtuel environment `source env/bin/activate`
