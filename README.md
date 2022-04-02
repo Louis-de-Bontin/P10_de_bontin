@@ -1,5 +1,14 @@
 # P10_de_bontin
-10th project of my OpenClassrooms formation
+10th project of my OpenClassrooms formation<br>
+The app is live, on this link : https://p10-softdesk.herokuapp.com/<br>
+If you are using the live app, replace "http://127.0.0.1:8000/" in every endpoints by the link above.<br>
+Here is a list of user you can login with :
+- Vador
+- Obi-wan
+- Padme
+- Solo
+- Leia<br>
+The password is always : jambon12
 
 ### Documentation
 The documentation is available here : https://documenter.getpostman.com/view/17381028/UVRGF4rG.
